@@ -7,14 +7,14 @@ class ProjectionManager(object):
         self.col = col
         self.row = row
         self.offset = offset
-        self.src = np.float32([[[col * 0.10, row],              # bottom-left
-                           [col * 0.90, row],                   # bottom-right
-                           [col * 0.53, row * 0.60],            # top-right
-                           [col * 0.47, row * 0.60]]])          # top-left
-        self.dst = np.float32([[col * 0.10 + offset, row],      # bottom left
-                          [col * 0.90 - offset, row],           # bottom right
-                          [col, 0],                             # top right
-                          [0, 0]])                              # top left
+        self.src = np.float32([[[col * 0.05, row],              # bottom-left
+                           [col * 0.95, row],                   # bottom-right
+                           [col * 0.55, row * 0.62],            # top-right
+                           [col * 0.45, row * 0.62]]])          # top-left
+        self.dst = np.float32([[col*0.15 + offset, row],      # bottom left
+                          [col*0.90 - offset, row],           # bottom right
+                          [col*0.88-offset, 0],                             # top right
+                          [col*0.10 + offset, 0]])                              # top left
         self.M = cv2.getPerspectiveTransform(self.src, self.dst)
         self.M_inversed = cv2.getPerspectiveTransform(self.dst, self.src)
 
@@ -26,3 +26,6 @@ class ProjectionManager(object):
     def get_normal_view(self, bird_eye_img):
         warped = cv2.warpPerspective(bird_eye_img, self.M_inversed, (self.col, self.row), flags=cv2.INTER_LINEAR)
         return warped
+
+    def get_roi(self):
+        return self.src.astype(int)
