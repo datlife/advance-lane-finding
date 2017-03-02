@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from utils.mask_roi import weighted_img
 
+
 class LineTracker(object):
     def __init__(self, window_width, window_height, margin, xm, ym, smooth_factor):
         self.window_width = window_width
@@ -38,7 +39,7 @@ class LineTracker(object):
         # Iterate through each layer looking for max pixel locations
         for level in range(1, int(r/wd_h)):
             # convolve the window into the vertical slice of the image
-            img_layer  = np.sum(warped[int(r - (level+1)*wd_h):int(r-level*wd_h), :], axis=0)
+            img_layer = np.sum(warped[int(r - (level+1)*wd_h):int(r-level*wd_h), :], axis=0)
             conv_signal = np.convolve(windows, img_layer)
             # Find the est left centroid using past left center as a reference
             # Use window_width/2 as offset because convolution signal reference is at the right side of window,
@@ -61,6 +62,40 @@ class LineTracker(object):
         # Smooth the line
         return np.average(self.recent_centers[-self.smooth_factor:], axis=0)
 
+    def curve_fit(self, img, leftx, rightx):
+        '''
+        Find a polynomial function of left and right lanes as:
+        F(x) = Ax^2 + Bx + C
+        '''
+
+        res_yvals = np.arange(img.shape[0] - (self.window_height/2), 0, -self.window_height)
+        ploty = np.linspace(0, img.shape[0] - 1, img.shape[0])
+        y_idx = np.int32(ploty)
+
+        # Fit into a function - return coefficients
+        # Left function
+        l_coeffs = np.polyfit(res_yvals, leftx, deg=2)
+        left_fitx = l_coeffs[0]*ploty**2 + l_coeffs[1]*ploty + l_coeffs[2]
+        left_fitx = np.int32(left_fitx)[0:img.shape[0]]
+        # Right function
+        r_coeffs = np.polyfit(res_yvals, rightx, deg=2)
+        right_fitx = r_coeffs[0]*ploty**2 + r_coeffs[1]*ploty + r_coeffs[2]
+        right_fitx = np.int32(right_fitx)[0:img.shape[0]]
+
+        left_lane = np.array(list(zip(np.concatenate((left_fitx - self.window_width/2,
+                                                      left_fitx[::-1]+self.window_width/2), axis=0),
+                                      np.concatenate((ploty, ploty[::-1]), axis=0))), dtype='int32')
+        right_lane = np.array(list(zip(np.concatenate((right_fitx - self.window_width/2,
+                                                      right_fitx[::-1]+self.window_width/2), axis=0),
+                                       np.concatenate((ploty, ploty[::-1]), axis=0))), dtype='int32')
+
+        output = np.zeros_like(img)
+        # Left lane
+        cv2.fillPoly(output, [left_lane], color=[255, 255, 0])
+        # Right lane
+        cv2.fillPoly(output, [right_lane], color=[255, 255, 0])
+        return output
+
 
 def window_mask(width, height, img, center, level):
     row = img.shape[0]
@@ -71,10 +106,16 @@ def window_mask(width, height, img, center, level):
 
 
 def draw_windows(img, w, h, window_centroids):
+    # points to draw left and right windows
     left_pts = np.zeros_like(img)
     right_pts = np.zeros_like(img)
 
+    # pixels used to find left and right lanes
+    rightx = []
+    leftx = []
     for level in range(0, len(window_centroids)):
+        leftx.append(window_centroids[level][0])
+        rightx.append(window_centroids[level][1])
         # Draw window
         l_mask = window_mask(w, h, img, window_centroids[level][0], level)
         r_mask = window_mask(w, h, img, window_centroids[level][1], level)
@@ -86,7 +127,8 @@ def draw_windows(img, w, h, window_centroids):
     template = np.array(left_pts+right_pts, dtype='uint8')
     zero_channel = np.zeros_like(template)
     template = np.array(cv2.merge((zero_channel, template, zero_channel)), dtype='uint8')
-    warpage = np.array(cv2.merge((img, img, img)), dtype='uint8')
-    result = weighted_img(warpage, template,α=1.0, β=0.3, λ=0.)
+    warped = 255*np.dstack((img, img, img)).astype('uint8')
+    result = weighted_img(warped, template, α=0.3, β=1.0, λ=0.)
 
-    return result
+    return result, leftx, rightx
+

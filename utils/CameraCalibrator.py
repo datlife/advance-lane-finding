@@ -5,7 +5,7 @@ import glob
 import pickle
 
 
-class CameraCalibration(object):
+class CameraCalibrator(object):
     '''
     Calibrate distortion of a camera given a set of chess images
     '''
