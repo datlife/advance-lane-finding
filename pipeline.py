@@ -2,22 +2,24 @@ import cv2
 import numpy as np
 from utils import mix_color_grad_thresh, adaptive_equalize_image, weighted_img, region_of_interest, draw_windows
 from utils import CameraCalibrator, ProjectionManager, LineTracker
+from moviepy.editor import VideoFileClip
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 
 # Read a new image
 img = cv2.imread('./test_images/test16.jpg')
-img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 
-def process_frame(img):
+def process_image(frame):
+
     # Calibrate camera
     cam_calibration = CameraCalibrator(p_file='./camera_cal/calibration_mat.p', img_dir=None)
     mtx, dst, img_size = cam_calibration.get()
+
     row = img_size[0]
     col = img_size[1]
-
     # Un-distort image
-    undst_img = adaptive_equalize_image(cv2.undistort(img, mtx, dst), level=2)
+    undst_img = adaptive_equalize_image(cv2.undistort(frame, mtx, dst), level=2)
     # Threshold image
     binary_img = mix_color_grad_thresh(undst_img, s_thresh=(180, 255), grad_thresh=(40, 90))
 
@@ -42,17 +44,23 @@ def process_frame(img):
 
     # Merge to original image
     lane_lines = cv2.addWeighted(undst_img, 1.0, lane_lines, 0.5, 0.0)
-    # Plot the result
-    f, ax = plt.subplots(2, 2)
-    f.tight_layout()
-    ax[0, 0].imshow(img)
-    ax[0, 0].set_title('Original Image')
-    ax[0, 1].imshow(undst_img)
-    ax[0, 1].set_title('Undistorted image')
-    ax[1, 0].imshow(undst_birdeye, cmap='gray')
-    ax[1, 0].set_title('Thresholded and ROI Cropped')
-    ax[1, 1].imshow(lane_lines)
-    ax[1, 1].set_title('Bird Eye View')
+    return lane_lines
 
-process_frame(img)
+process_image(img)
+# Plot the result
+# f, ax = plt.subplots(2, 2)
+# f.tight_layout()
+# ax[0, 0].imshow(frame)
+# ax[0, 0].set_title('Original Image')
+# ax[0, 1].imshow(undst_img)
+# ax[0, 1].set_title('Undistorted image')
+# ax[1, 0].imshow(undst_birdeye, cmap='gray')
+# ax[1, 0].set_title('Thresholded and ROI Cropped')
+# ax[1, 1].imshow(lane_lines)
+# ax[1, 1].set_title('Bird Eye View')
 plt.show()
+
+output = 'output.mp4'
+clip1 = VideoFileClip("./project_video.mp4")
+clip = clip1.fl_image(process_image)   # NOTE: this function expects color images!!
+clip.write_videofile(output, audio=False)
