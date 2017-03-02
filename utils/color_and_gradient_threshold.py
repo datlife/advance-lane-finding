@@ -24,7 +24,6 @@ def mix_color_grad_thresh(img, grad_thresh=(20, 90), s_thresh=(170, 255), dir_th
     gradient_magnitude = np.sqrt(abs_sobelx ** 2 + abs_sobely ** 2)
     scale_factor = np.max(gradient_magnitude) / 255
     gradient_magnitude = np.uint8(gradient_magnitude / scale_factor)
-    # 5) Create a binary mask where mag thresholds are met
     mag_binary_output = np.zeros_like(gradient_magnitude)
     mag_binary_output[(gradient_magnitude >= grad_thresh[0]) & (gradient_magnitude <= grad_thresh[1])] = 1
 

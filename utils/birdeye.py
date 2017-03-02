@@ -2,21 +2,27 @@ import cv2
 import numpy as np
 
 
-def bird_eye_view(img, offset=100):
-    row = img.shape[0]
-    col = img.shape[1]
+class ProjectionManager(object):
+    def __init__(self, row, col, offset=100):
+        self.col = col
+        self.row = row
+        self.offset = offset
+        self.src = np.float32([[[col * 0.10, row],              # bottom-left
+                           [col * 0.90, row],                   # bottom-right
+                           [col * 0.53, row * 0.60],            # top-right
+                           [col * 0.47, row * 0.60]]])          # top-left
+        self.dst = np.float32([[col * 0.10 + offset, row],      # bottom left
+                          [col * 0.90 - offset, row],           # bottom right
+                          [col, 0],                             # top right
+                          [0, 0]])                              # top left
+        self.M = cv2.getPerspectiveTransform(self.src, self.dst)
+        self.M_inversed = cv2.getPerspectiveTransform(self.dst, self.src)
 
-    src = np.float32([[row*0.3, 0],
-                      [row*0.8, 0],
-                      [row*0.55, col*0.65],
-                      [row*0.45, col*0.65]])
-    dst = np.float32([[row*0.3, 0],
-                      [row*0.8, 0],
-                      [row*0.8, col],
-                      [row*0.3, col]])
+    def get_birdeye_view(self, img):
+        # Warp image to a top-down view
+        warped = cv2.warpPerspective(img, self.M, (self.col, self.row), flags=cv2.INTER_LINEAR)
+        return warped
 
-    # d) use cv2.getPerspectiveTransform() to get M, the transform matrix
-    M = cv2.getPerspectiveTransform(src, dst)
-    # e) use cv2.warpPerspective() to warp your image to a top-down view
-    warped = cv2.warpPerspective(img, M, (col, row), flags=cv2.INTER_LINEAR)
-    return warped, M
+    def get_normal_view(self, bird_eye_img):
+        warped = cv2.warpPerspective(bird_eye_img, self.M_inversed, (self.col, self.row), flags=cv2.INTER_LINEAR)
+        return warped
