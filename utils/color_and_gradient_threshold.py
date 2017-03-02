@@ -42,7 +42,7 @@ def mix_color_grad_thresh(img, grad_thresh=(20, 90), s_thresh=(170, 255), dir_th
 
     # Combine the two binary thresholds
     combined_binary = np.zeros_like(sxbinary)
-    combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1  # OR mean combine
+    combined_binary[(s_binary == 1) | (mag_binary_output == 1)] = 1  # OR mean combine
 
     return combined_binary
 #

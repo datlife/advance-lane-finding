@@ -1,23 +1,34 @@
 import cv2
 import numpy as np
+from utils.CameraCalibrator import CameraCalibrator
+
+# Define source and destination points
+offset = 300
 
 
 class ProjectionManager(object):
-    def __init__(self, row, col, offset=100):
+    def __init__(self, cam_calib, row, col, src=None, dst=None, offset=100):
         self.col = col
         self.row = row
         self.offset = offset
-        self.src = np.float32([[[col * 0.05, row],                   # bottom-left
-                                [col * 0.95, row],                   # bottom-right
-                                [col * 0.55, row * 0.62],            # top-right
-                                [col * 0.45, row * 0.62]]])          # top-left
+        if src is None:
+            self.src = np.float32([[[col * 0.05, row],  # bottom-left
+                               [col * 0.95, row],  # bottom-right
+                               [col * 0.60, row * 0.62],  # top-right
+                               [col * 0.43, row * 0.62]]])  # top-left
+        else:
+            self.src = src
 
-        self.dst = np.float32([[col*0.15 + offset, row],             # bottom left
-                               [col*0.90 - offset, row],             # bottom right
-                               [col*0.88-offset, 0],                 # top right
-                               [col*0.10 + offset, 0]])              # top left
+        if dst is None:
+            self.dst = np.float32([[col * 0.15 + offset, row],  # bottom left
+                              [col * 0.90 - offset, row],  # bottom right
+                              [col - offset, 0],  # top right
+                              [offset, 0]])  # top le
+        else:
+            self.dst = dst
         self.M = cv2.getPerspectiveTransform(self.src, self.dst)
         self.M_inverse = cv2.getPerspectiveTransform(self.dst, self.src)
+        self.mtx, self.dst, _ = cam_calib.get()
 
     def get_birdeye_view(self, img):
         # Warp image to a top-down view
