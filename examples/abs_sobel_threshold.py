@@ -106,6 +106,7 @@ def dir_threshold(img, sobel_kernel=3, thresh=(0, np.pi / 2)):
 # ax2.set_title('Thresholded Grad. Dir.', fontsize=50)
 # plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
 #
+    cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 # # Run the function
 # gradx = abs_sobel_thresh(image, orient='x', thresh_min=30, thresh_max=100)
 # grady = abs_sobel_thresh(image, orient='y', thresh_min=30, thresh_max=100)
