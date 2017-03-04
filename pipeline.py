@@ -1,32 +1,32 @@
 import cv2
 import numpy as np
-from utils import mix_color_grad_thresh, adaptive_equalize_image, weighted_img, region_of_interest, draw_windows
+from utils import  weighted_img, region_of_interest, draw_windows, mix_color_grad_thresh
 from utils import CameraCalibrator, ProjectionManager, LineTracker, ImageFilter
 from moviepy.editor import VideoFileClip
 
 
-# Read a new image
-img = cv2.imread('./test_images/test16.jpg')
-
-
-def diagnostic_screen(lane_lines, binary_img, birdeye_img, birdeye_view, curved_fit, result):
+def diagnostic_screen(lane_lines, edge_img, birdeye_img, birdeye_view, curved_fit, windows):
     # middle panel text example
     # using cv2 for drawing text in diagnostic pipeline.
     font = cv2.FONT_HERSHEY_COMPLEX
     status_screen = np.zeros((120, 1280, 3), dtype=np.uint8)
     cv2.putText(status_screen, 'Estimated lane curvature: ERROR!', (30, 60), font, 1, (255, 0, 0), 2)
     cv2.putText(status_screen, 'Estimated Meters right of center: ERROR!', (30, 90), font, 1, (255, 0, 0), 2)
-    binary_img = np.dstack((binary_img, binary_img, binary_img)) * 255
-    birdeye_img = np.dstack((birdeye_img, birdeye_img, birdeye_img)) * 255
+
+    # Convert image to RGB
+    edge_img = np.dstack((edge_img, edge_img, edge_img))*255
+    birdeye_img = np.dstack((birdeye_img, birdeye_img, birdeye_img))*255
+
     # Assemble Diagnostic Screen
     diagScreen = np.zeros((1080, 1920, 3), dtype=np.uint8)
+    # Main output image
     diagScreen[0:720, 0:1280] = lane_lines
     # Top right 1
     diagScreen[0:240, 1280:1600] = cv2.resize(birdeye_view, (320, 240), interpolation=cv2.INTER_AREA)
     # Top right 2
-    diagScreen[0:240, 1600:1920] = cv2.resize(birdeye_img, (320, 240), interpolation=cv2.INTER_AREA)
-    diagScreen[240:480, 1280:1600] = cv2.resize(binary_img, (320, 240), interpolation=cv2.INTER_AREA)
-    diagScreen[240:480, 1600:1920] = cv2.resize(result, (320, 240), interpolation=cv2.INTER_AREA) * 4
+    diagScreen[0:240, 1600:1920] = cv2.resize(windows, (320, 240), interpolation=cv2.INTER_AREA)*4
+    diagScreen[240:480, 1280:1600] = cv2.resize(birdeye_img, (320, 240), interpolation=cv2.INTER_AREA)
+    diagScreen[240:480, 1600:1920] = cv2.resize(edge_img, (320, 240), interpolation=cv2.INTER_AREA)
     diagScreen[600:1080, 1280:1920] = cv2.resize(curved_fit, (640, 480), interpolation=cv2.INTER_AREA) * 4
     diagScreen[720:840, 0:1280] = status_screen
     # Histogram here
@@ -44,24 +44,25 @@ def process_image(frame):
     global curve_centers
     global debug
 
-    mtx, dst, _ = cam_calibration.get()
+    mtx, dst, size = cam_calibration.get()
+
     # Un-distort image
     undst_img = cv2.undistort(frame, mtx, dst)
 
     # Threshold image
-    binary_img = img_filter.mix_threshold(undst_img)
+    bin_img = img_filter.mix_color_grad_thresh(undst_img)
 
     # Perspective Transform
-    binary_img = region_of_interest(binary_img, projmgr.get_roi())
+    binary_roi = region_of_interest(bin_img, projmgr.get_roi())
     birdeye_view = projmgr.get_birdeye_view(undst_img)
-    birdeye_img = projmgr.get_birdeye_view(binary_img)
+    birdeye_img = projmgr.get_birdeye_view(binary_roi)
 
     # Sliding window
     window_centroids = curve_centers.find_lane_line(warped=birdeye_img)
-    result, leftx, rightx = draw_windows(birdeye_img, w=25, h=80, window_centroids=window_centroids)
+    windows, leftx, rightx = draw_windows(birdeye_img, w=25, h=80, window_centroids=window_centroids)
 
     # Curve-fit
-    curved_fit = curve_centers.curve_fit(result, leftx, rightx)
+    curved_fit = curve_centers.curve_fit(windows, leftx, rightx)
 
     # Convert back to normal view
     lane_lines = projmgr.get_normal_view(curved_fit)
@@ -71,7 +72,7 @@ def process_image(frame):
 
     # Add diagnostic screen if user needs to debug
     if debug is True:
-        lane_lines = diagnostic_screen(lane_lines, binary_img, birdeye_img, birdeye_view, curved_fit, result)
+        lane_lines = diagnostic_screen(lane_lines, binary_roi, birdeye_img, birdeye_view, curved_fit, windows)
 
     return lane_lines
 
@@ -94,6 +95,6 @@ if __name__ == "__main__":
 
     # Create output video
     output = 'output.mp4'
-    clip1 = VideoFileClip("./project_video.mp4").subclip(36, 42)
-    clip = clip1.fl_image(process_image)   # NOTE: this function expects color images!!
+    clip1 = VideoFileClip("./project_video.mp4")
+    clip = clip1.fl_image(process_image)  # NOTE: this function expects color images!!
     clip.write_videofile(output, audio=False)

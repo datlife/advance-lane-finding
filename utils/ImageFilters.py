@@ -15,7 +15,10 @@ class ImageFilter(object):
         # Define a function that applies Sobel x or y,
         # Apply the following steps to img
         # 1) Convert to grayscale
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if img.shape[-1] == 3:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = img
         # 2, 3) Take the absolute derivative in x or y given orient = 'x' or 'y'
         abs_sobel = None
         if orient is 'x':
@@ -38,7 +41,10 @@ class ImageFilter(object):
 
         # Apply the following steps to img
         # 1) Convert to grayscale
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if img.shape[-1] == 3:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = img
         # 2) Take the gradient in x and y separately
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
@@ -57,7 +63,10 @@ class ImageFilter(object):
     def dir_threshold(self, img, sobel_kernel=3, thresh=(0, np.pi / 2)):
         # Apply the following steps to img
         # 1) Convert to grayscale
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if img.shape[-1] == 3:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = img
         # 2) Take the gradient in x and y separately
         sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
         sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
@@ -103,45 +112,67 @@ class ImageFilter(object):
         result = cv2.cvtColor(merge, cv2.COLOR_LAB2BGR)
         return result
 
-    def hsv_image(self, img, yellow_min=(85, 40, 170), yellow_max=(99, 200, 255), white_min=(0, 0, 210),
-                  white_max=(140, 20, 255)):
-        """
-        Convert BGR to HSV
-        green = np.uint8([[[255,236,107]]])
-        hsv_green = cv2.cvtColor(green,cv2.COLOR_BGR2HSV)
-        print(hsv_green)
-        """
-        img = adaptive_equalize_image(img, 3.0)
-
-        # Convert to HSV image
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
-        WHITE_MIN = np.array(white_min)
-        WHITE_MAX = np.array(white_max)
-        YELLOW_MIN = np.array(yellow_min)
-        YELLOW_MAX = np.array(yellow_max)
-
-        white_mask = cv2.inRange(hsv, WHITE_MIN, WHITE_MAX)
-        yellow_mask = cv2.inRange(hsv, YELLOW_MIN, YELLOW_MAX)
-        mask = cv2.addWeighted(white_mask, 1.0, yellow_mask, 1.0, 0.0)
-        hsv = cv2.bitwise_and(img, img, mask=mask)
-        return hsv
-
-    def mix_threshold(self, image):
+    def mix_threshold(self, img):
         # Sobel Threshold
-        gradx = self.abs_sobel_thresh(image, orient='x', thresh_min=30, thresh_max=100)
-        grady = self.abs_sobel_thresh(image, orient='y', thresh_min=30, thresh_max=100)
-        mag_binary = self.mag_thresh(image, mag_thresh=(30, 100), sobel_kernel=15)
-        dir_binary = self.dir_threshold(image, thresh=(0.7, 1.3), sobel_kernel=15)
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        gradx = self.abs_sobel_thresh(gray, orient='x', thresh_min=30, thresh_max=100)
+        grady = self.abs_sobel_thresh(gray, orient='y', thresh_min=30, thresh_max=100)
+        mag_binary = self.mag_thresh(gray, mag_thresh=(30, 100), sobel_kernel=15)
+        dir_binary = self.dir_threshold(gray, thresh=(0.7, 1.3), sobel_kernel=15)
 
         # Color Threshold
-        s_binary = self.hls_select(image, thresh=(88, 250))
-        h_binary = self.hls_select(image, thresh=(120, 250), channel=1)
-        binimg = np.zeros_like(s_binary)
-        binimg[(s_binary == 1) & (h_binary == 1)] = 1
+        s_binary = self.hls_select(img, thresh=(88, 250))
+        h_binary = self.hls_select(img, thresh=(120, 250), channel=1)
+        color_binary = np.zeros_like(s_binary)
+        color_binary[(s_binary == 1) & (h_binary == 1)] = 1
 
         # Mix Threshold together
-        combined = np.zeros_like(dir_binary)
-        combined[((gradx == 1) | (grady == 1)) | ((mag_binary == 1) & (dir_binary == 1)) | (binimg == 1)] = 1
+        combined_binary = np.zeros_like(gray)
+        combined_binary[((gradx == 1) | (grady == 1)) | ((mag_binary == 1) & (dir_binary == 1)) | (color_binary == 1)] = 1
 
-        return combined
+        return combined_binary
+
+    def mix_color_grad_thresh(self, img, grad_thresh=(30, 100), s_thresh=(88, 250), h_thresh=(120, 250), dir_thresh=(0.7, 1.4)):
+        # THIS IS FASTER
+        # Convert to HLS color space and separate the S channel
+        # Note: img is the undistorted image
+        hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+        s_channel = hls[:, :, 2]
+        h_channel = hls[:, :, 1]
+        # Grayscale image
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+        # Sobel x
+        abs_sobelx = np.absolute(cv2.Sobel(gray, cv2.CV_64F, 1, 0))  # Take the derivative in x
+        abs_sobely = np.absolute(cv2.Sobel(gray, cv2.CV_64F, 0, 1))  # Take the derivative in x
+        scaled_sobel = np.uint8(255 * abs_sobelx / np.max(abs_sobelx))
+        scaled_sobel_y = np.uint8(255 * abs_sobely / np.max(abs_sobely))
+
+        # Threshold x gradient
+        sxbinary = np.zeros_like(scaled_sobel)
+        sxbinary[(scaled_sobel >= grad_thresh[0]) & (scaled_sobel <= grad_thresh[1])] = 1
+        sxbinary[(scaled_sobel_y >= grad_thresh[0]) & (scaled_sobel_y <= grad_thresh[1])] = 1
+
+        # Threshold magnitude gradient
+        gradient_magnitude = np.sqrt(abs_sobelx ** 2 + abs_sobely ** 2)
+        scale_factor = np.max(gradient_magnitude) / 255
+        gradient_magnitude = np.uint8(gradient_magnitude / scale_factor)
+        mag_binary = np.zeros_like(gradient_magnitude)
+        mag_binary[(gradient_magnitude >= grad_thresh[0]) & (gradient_magnitude <= grad_thresh[1])] = 1
+
+        # Threshold direction gradient
+        grad_direction = np.arctan2(abs_sobely, abs_sobelx)
+        dir_binary = np.zeros_like(grad_direction)
+        dir_binary[(grad_direction >= dir_thresh[0]) & (grad_direction <= dir_thresh[1])] = 1
+
+        # Threshold color channel
+        s_binary = np.zeros_like(s_channel)
+        s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1]) &
+                 (h_channel >= h_thresh[0]) & (h_channel <= h_thresh[1])] = 1
+
+        # Combine the two binary thresholds
+        # OR mean combine
+        combined_binary = np.zeros_like(sxbinary)
+        combined_binary[(sxbinary == 1) | (s_binary == 1) | ((mag_binary == 1) & (dir_binary == 1))] = 1
+
+        return combined_binary
