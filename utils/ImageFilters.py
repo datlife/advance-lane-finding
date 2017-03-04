@@ -138,6 +138,39 @@ class ImageFilter(object):
 
         return combined_binary
 
+    def region_of_interest(self, img, vertices):
+        """
+        Filter out not-so-important region in the image
+        :param source_img:
+        :param vertices:    list of vertices to create a polygon
+        :return:
+        """
+        mask = np.zeros_like(img)
+        ignore_mask_color = 255
+
+        # defining a 3 channel or 1 channel color to fill the mask with depending on the input image
+        if len(img.shape) > 2:
+            channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
+            ignore_mask_color = (255,) * channel_count
+        else:
+            ignore_mask_color = 255
+
+        cv2.fillPoly(mask, vertices, ignore_mask_color)
+
+        masked_edges = cv2.bitwise_and(img, mask)
+        return masked_edges
+
+    def draw_line_segments(self, source_image, h_lines, color=[255, 0, 0], thickness=2):
+        """
+        Draw the line segments to the source images.
+        """
+
+        line_img = np.copy(source_image)
+        for a_line in h_lines:
+            for x1, y1, x2, y2 in a_line:
+                cv2.line(line_img, (x1, y1), (x2, y2), color, thickness)
+        return line_img
+
     def mix_color_grad_thresh(self, img, grad_thresh=(30, 100), s_thresh=(88, 250), h_thresh=(120, 250), dir_thresh=(0.7, 1.4)):
         # THIS IS FASTER
         # Convert to HLS color space and separate the S channel

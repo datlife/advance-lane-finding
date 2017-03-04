@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from utils.mask_roi import weighted_img
 
 
 class LineTracker(object):
@@ -171,7 +170,6 @@ def draw_windows(img, w, h, window_centroids):
     zero_channel = np.zeros_like(template)
     template = np.array(cv2.merge((zero_channel, template, zero_channel)), dtype='uint8')
     warped = 255*np.dstack((img, img, img)).astype('uint8')
-    result = weighted_img(warped, template, α=0.3, β=1.0, λ=0.)
-
+    result = cv2.addWeighted(warped, 0.3, template, 1.0, 0.)
     return result, leftx, rightx
 
