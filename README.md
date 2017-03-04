@@ -2,6 +2,7 @@
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
 [![Video](https://raw.githubusercontent.com/dat-ai/advance-lane-finding/master/docs/gif.gif)](https://www.youtube.com/watch?v=blezjtz1lWU)
+(Click to image to view the demo video)
 
 ### Dependencies
 ----------------
