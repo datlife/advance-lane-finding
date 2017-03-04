@@ -4,6 +4,36 @@
 [![Video](https://raw.githubusercontent.com/dat-ai/advance-lane-finding/master/docs/gif.gif)](https://www.youtube.com/watch?v=blezjtz1lWU)
 
 
+### Goal
+--------
+The goals / steps of this project are the following:
+
+* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
+* Apply a distortion correction to raw images.
+* Use color transforms, gradients, etc., to create a thresholded binary image.
+* Apply a perspective transform to rectify binary image ("birds-eye view").
+* Detect lane pixels and fit to find the lane boundary.
+* Determine the curvature of the lane and vehicle position with respect to center.
+* Warp the detected lane boundaries back onto the original image.
+* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+
+### How to use
+```shell
+# Clone the project to local computer
+git clone https://github.com/dat-ai/advance-lane-finding
+```
+
+```shell
+# Run pipe line
+cd advance-lane-finding
+
+# Add executable permission
+sudo chmod +x pipeline.py
+
+# Run program
+python pipeline.py
+```
+
 #### MAIN PIPELINE
 ------------------
 ```shell
@@ -43,16 +73,6 @@ def process_image(frame):
 
 ---
 
-The goals / steps of this project are the following:
-
-* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
-* Apply a distortion correction to raw images.
-* Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
-* Detect lane pixels and fit to find the lane boundary.
-* Determine the curvature of the lane and vehicle position with respect to center.
-* Warp the detected lane boundaries back onto the original image.
-* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
 The images for camera calibration are stored in the folder called `camera_cal/calibration_mat.p`. The images in `test_images` are for testing pipeline on single frames.  
 
