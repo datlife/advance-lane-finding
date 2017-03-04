@@ -3,19 +3,10 @@
 
 [![Video](https://raw.githubusercontent.com/dat-ai/advance-lane-finding/master/docs/gif.gif)](https://www.youtube.com/watch?v=blezjtz1lWU)
 
+### Dependencies
+----------------
 
-### Goal
---------
-The goals / steps of this project are the following:
-
-* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
-* Apply a distortion correction to raw images.
-* Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
-* Detect lane pixels and fit to find the lane boundary.
-* Determine the curvature of the lane and vehicle position with respect to center.
-* Warp the detected lane boundaries back onto the original image.
-* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+This project requires users to have additional libraries installed in order to use. Udacity provided a good solution by sharing  a ready-to-use environment `CarND-Term1-Starter-Kit` for students. Please refer [here](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/doc/configure_via_anaconda.md) on how to install.
 
 ### How to use
 ---------------
@@ -37,6 +28,21 @@ sudo chmod +x pipeline.py
 # Run program
 python pipeline.py
 ```
+
+### Goal
+--------
+The goals / steps of this project are the following:
+
+* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
+* Apply a distortion correction to raw images.
+* Use color transforms, gradients, etc., to create a thresholded binary image.
+* Apply a perspective transform to rectify binary image ("birds-eye view").
+* Detect lane pixels and fit to find the lane boundary.
+* Determine the curvature of the lane and vehicle position with respect to center.
+* Warp the detected lane boundaries back onto the original image.
+* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+
+
 
 #### MAIN PIPELINE
 ------------------
