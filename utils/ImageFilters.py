@@ -98,7 +98,6 @@ class ImageFilter(object):
         """
         Equalize an image - Increase contrast for the image
             # http://docs.opencv.org/3.1.0/d5/daf/tutorial_py_histogram_equalization.html
-
         :param img:    an gray image
         :param level:  clipLevel
         :return: a equalized image

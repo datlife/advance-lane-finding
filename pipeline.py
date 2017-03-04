@@ -45,7 +45,6 @@ def process_image(frame):
     global debug
 
     mtx, dst, size = cam_calibration.get()
-
     # Un-distort image
     undst_img = cv2.undistort(frame, mtx, dst)
 
@@ -95,6 +94,6 @@ if __name__ == "__main__":
 
     # Create output video
     output = 'output.mp4'
-    clip1 = VideoFileClip("./project_video.mp4")
+    clip1 = VideoFileClip("./project_video.mp4").subclip(39,42)
     clip = clip1.fl_image(process_image)  # NOTE: this function expects color images!!
     clip.write_videofile(output, audio=False)
