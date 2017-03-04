@@ -18,6 +18,7 @@ The goals / steps of this project are the following:
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
 ### How to use
+---------------
 ```shell
 # Clone the project to local computer
 git clone https://github.com/dat-ai/advance-lane-finding
@@ -26,10 +27,13 @@ git clone https://github.com/dat-ai/advance-lane-finding
 ```shell
 # Run pipe line
 cd advance-lane-finding
-
+```
+```shell
 # Add executable permission
 sudo chmod +x pipeline.py
+````
 
+```shell
 # Run program
 python pipeline.py
 ```
