@@ -8,7 +8,6 @@ import matplotlib.image as mpimg
 # MODIFY THIS FUNCTION TO GENERATE OUTPUT
 # THAT LOOKS LIKE THE IMAGE ABOVE
 
-
 def corners_unwarp(img, nx, ny, mtx, dist):
     # Pass in your image into this function
     # Write code to do the following steps

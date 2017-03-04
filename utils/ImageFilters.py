@@ -112,6 +112,13 @@ class ImageFilter(object):
         return result
 
     def mix_threshold(self, img):
+        #
+        # @TODO:
+        # Find a way to analyze image and adjust image robustly:
+        # Cloudy --> what
+        # Shadow Tree ---> what
+        # Overexposure --> what
+        #
         # Sobel Threshold
         gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         gradx = self.abs_sobel_thresh(gray, orient='x', thresh_min=30, thresh_max=100)

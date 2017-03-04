@@ -77,6 +77,7 @@ class LineTracker(object):
         l_coeffs = np.polyfit(res_yvals, leftx, deg=2)
         left_fitx = l_coeffs[0]*ploty**2 + l_coeffs[1]*ploty + l_coeffs[2]
         left_fitx = np.int32(left_fitx)[0:img.shape[0]]
+
         # Right function
         r_coeffs = np.polyfit(res_yvals, rightx, deg=2)
         right_fitx = r_coeffs[0]*ploty**2 + r_coeffs[1]*ploty + r_coeffs[2]
@@ -88,13 +89,54 @@ class LineTracker(object):
         right_lane = np.array(list(zip(np.concatenate((right_fitx - self.window_width/2,
                                                       right_fitx[::-1]+self.window_width/2), axis=0),
                                        np.concatenate((ploty, ploty[::-1]), axis=0))), dtype='int32')
+        inner_lane = np.array(list(zip(np.concatenate((left_fitx + self.window_width/2, right_fitx[::-1] - self.window_width/2), axis=0),
+                                       np.concatenate((ploty, ploty[::-1]), axis=0))), dtype='int32')
+
+        # Curvature
+        curvature = self.cal_curvature(leftx, rightx, res_yvals, ploty)
+        # Offset
+        offset = self.cal_offset(img, left_fitx, right_fitx)
+
+        output = self.visualize_lanes(img, left_lane, right_lane, inner_lane, offset)
+
+        return output, curvature, offset
+
+    def visualize_lanes(self, img, left_lane, right_lane, inner_lane, offset):
 
         output = np.zeros_like(img)
-        # Left lane
+        background = np.zeros_like(img)
+
+        # Left & Right lane
         cv2.fillPoly(output, [left_lane], color=[255, 255, 0])
-        # Right lane
         cv2.fillPoly(output, [right_lane], color=[255, 255, 0])
+
+        # Background -- if offset < 0.5m --> green, else red
+        if offset < 0.55:
+            background_color = [255, 255, 0]
+        else:
+            background_color = [255, 0, 0]
+        cv2.fillPoly(background, [inner_lane], color=background_color)
+        output = cv2.addWeighted(output, 1.0, background, 0.6, 0.0)
+
         return output
+
+    def cal_curvature(self,  leftx, rightx, res_yvals, ploty):
+        ym_per_pix = self.ym_per_pixel
+        xm_per_pix = self.xm_per_pixel
+
+        left_fit = np.polyfit(np.array(res_yvals, np.float32)*ym_per_pix, np.array(leftx, np.float32)*xm_per_pix, 2)
+        right_fit = np.polyfit(np.array(res_yvals, np.float32)*ym_per_pix, np.array(rightx, np.float32)*xm_per_pix, 2)
+
+        rad_curv_left = ((1 + (2*left_fit[0]*ploty[-300]*ym_per_pix + left_fit[1])**2)**1.5)/abs(2*left_fit[0])
+        rad_curv_right = ((1 + (2 * right_fit[0] * ploty[-300] * ym_per_pix + right_fit[1]) ** 2) ** 1.5) / abs(2 * right_fit[0])
+
+        curvature = np.mean(np.array((left_fit, right_fit), dtype='float32'))
+        return curvature
+
+    def cal_offset(self, img, left_fitx, right_fitx):
+        camera_center = (left_fitx[-1] + right_fitx[-1])/2
+        center_diff = (camera_center - img.shape[1]/2)*self.xm_per_pixel
+        return center_diff
 
 
 def window_mask(width, height, img, center, level):
@@ -113,6 +155,7 @@ def draw_windows(img, w, h, window_centroids):
     # pixels used to find left and right lanes
     rightx = []
     leftx = []
+
     for level in range(0, len(window_centroids)):
         leftx.append(window_centroids[level][0])
         rightx.append(window_centroids[level][1])
